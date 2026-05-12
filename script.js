@@ -218,8 +218,8 @@ let roomChannel = null;
 let isMultiplayer = false;
 let currentRoomCode = null;
 
-const SUPABASE_URL = 'YOUR_SUPABASE_URL';
-const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY';
+const SUPABASE_URL = 'https://xysufyfzscripnkozsfa.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5c3VmeWZ6c2NyaXBua296c2ZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1MzQzMDEsImV4cCI6MjA5NDExMDMwMX0.-lEabpLCOHVJFIyn-NsznVWwSB2K2TTCGKEvqhBVqes';
 
 function initSupabase() {
     if (SUPABASE_URL === 'YOUR_SUPABASE_URL') return;
