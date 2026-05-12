@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Couple Games - Spark Your Connection</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Couple Games</h1>
+            <p class="tagline">Spark Your Connection</p>
+            <div class="mode-selector">
+                <button id="normal-mode-btn" class="mode-btn active" onclick="setMode('normal')">Normal</button>
+                <button id="funny-mode-btn" class="mode-btn" onclick="setMode('funny')">Funny</button>
+                <button id="naughty-mode-btn" class="mode-btn" onclick="setMode('naughty')">Naughty</button>
+                <button id="adult-mode-btn" class="mode-btn" onclick="setMode('adult')">18+</button>
+            </div>
+        </header>
+
+        <main id="game-container">
+            <!-- Menu View -->
+            <section id="menu-view" class="view active">
+                <div class="player-setup">
+                    <div class="input-group">
+                        <input type="text" id="p1-name" placeholder="Name 1" value="Player 1">
+                        <span>&</span>
+                        <input type="text" id="p2-name" placeholder="Name 2" value="Player 2">
+                    </div>
+                    
+                    <div class="multiplayer-options">
+                        <div id="offline-options">
+                            <button class="secondary-btn" onclick="toggleMultiplayer(true)">Play Online (2 Devices)</button>
+                        </div>
+                        <div id="online-options" style="display: none;">
+                            <div class="room-controls">
+                                <div id="create-room-box">
+                                    <button class="secondary-btn" id="create-room-btn">Create Room</button>
+                                </div>
+                                <div id="join-room-box">
+                                    <input type="text" id="room-code-input" placeholder="Room Code">
+                                    <button class="secondary-btn" id="join-room-btn">Join</button>
+                                </div>
+                            </div>
+                            <div id="room-info" style="display: none;">
+                                <p>Room Code: <strong id="display-room-code">----</strong></p>
+                                <p id="connection-status">Waiting for partner...</p>
+                            </div>
+                            <button class="text-link" onclick="toggleMultiplayer(false)">Switch to Local Play</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="game-grid">
+                    <button class="game-card" onclick="startGame('truth-or-dare')">
+                        <div class="card-icon">🔥</div>
+                        <h3>Truth or Dare</h3>
+                        <p>Deep secrets or daring challenges.</p>
+                    </button>
+                    <button class="game-card" onclick="startGame('never-have-i-ever')">
+                        <div class="card-icon">🥂</div>
+                        <h3>Never Have I Ever</h3>
+                        <p>Find out what they've really done.</p>
+                    </button>
+                    <button class="game-card" onclick="startGame('would-you-rather')">
+                        <div class="card-icon">🤔</div>
+                        <h3>Would You Rather</h3>
+                        <p>Difficult choices, interesting talks.</p>
+                    </button>
+                    <button class="game-card" onclick="startGame('date-idea')">
+                        <div class="card-icon">✨</div>
+                        <h3>Date Generator</h3>
+                        <p>Random ideas for your next date.</p>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Game Play View -->
+            <section id="play-view" class="view">
+                <div class="game-header">
+                    <button class="back-btn" onclick="showMenu()">← Back</button>
+                    <h2 id="game-title">Game Title</h2>
+                </div>
+                <div id="turn-indicator">Player 1's Turn</div>
+                <div id="card-display" class="card">
+                    <p id="card-content">Click 'Next' to start!</p>
+                </div>
+                <div class="game-controls">
+                    <button id="next-btn" class="primary-btn">Next</button>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>Made with ❤️ for Couples</p>
+        </footer>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
