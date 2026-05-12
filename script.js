@@ -218,6 +218,47 @@ let roomChannel = null;
 let isMultiplayer = false;
 let currentRoomCode = null;
 
+// Audio and Haptics
+const flipSound = new Audio('https://www.soundjay.com/misc/sounds/page-flip-01a.mp3');
+flipSound.volume = 0.5;
+
+// Using a high-quality, stable URL for the romantic jazz
+const bgMusic = new Audio('https://www.chosic.com/wp-content/uploads/2021/07/Backbay-Lounge.mp3');
+bgMusic.loop = true;
+bgMusic.volume = 0.3;
+let isMusicPlaying = false;
+
+function toggleMusic() {
+    const btn = document.getElementById('music-toggle');
+    if (!isMusicPlaying) {
+        // Try to play
+        bgMusic.play().then(() => {
+            isMusicPlaying = true;
+            btn.classList.add('active');
+            btn.innerText = '🎵';
+        }).catch(e => {
+            console.error("Playback failed:", e);
+            alert("Please click anywhere on the page first, then try the music button again!");
+        });
+    } else {
+        bgMusic.pause();
+        isMusicPlaying = false;
+        btn.classList.remove('active');
+        btn.innerText = '🔇';
+    }
+}
+
+function triggerEffects() {
+    // Sound
+    flipSound.currentTime = 0;
+    flipSound.play().catch(e => console.log("Audio play blocked until interaction"));
+    
+    // Haptics (Mobile)
+    if (navigator.vibrate) {
+        navigator.vibrate(40); // Short 40ms vibration
+    }
+}
+
 const SUPABASE_URL = 'https://xysufyfzscripnkozsfa.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5c3VmeWZ6c2NyaXBua296c2ZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1MzQzMDEsImV4cCI6MjA5NDExMDMwMX0.-lEabpLCOHVJFIyn-NsznVWwSB2K2TTCGKEvqhBVqes';
 
@@ -289,23 +330,25 @@ function joinChannel(code) {
 }
 
 function syncGameState(state) {
-    // Only update if we are not the one who sent it or to ensure sync
     currentGame = state.gameKey;
     currentMode = state.mode;
     players = state.players;
     currentPlayerIndex = state.turn;
     
-    // Update Mode UI
-    setMode(state.mode, false); // Pass false to avoid rebroadcasting
+    setMode(state.mode, false);
     
-    // Update Play View
     const game = gameData[currentGame];
     document.getElementById('game-title').innerText = game.title;
     updateTurnIndicator();
     
-    const display = document.getElementById('card-content');
-    display.innerHTML = state.cardContent;
-    display.style.opacity = 1;
+    // Determine which face to update based on current flip state
+    const card = document.getElementById('card-display');
+    const isFlipped = card.classList.contains('is-flipped');
+    const nextFace = isFlipped ? document.getElementById('card-content') : document.getElementById('card-content-back');
+    
+    nextFace.innerHTML = state.cardContent;
+    card.classList.toggle('is-flipped');
+    triggerEffects();
 
     if (currentView !== 'play-view') {
         showView('play-view');
@@ -364,9 +407,6 @@ function startGame(gameKey) {
     const p2 = document.getElementById('p2-name').value.trim() || 'Player 2';
     players = [p1, p2];
     
-    // In multiplayer, the creator might want to decide, but random is fine.
-    // However, sync issues can occur if both randomize. 
-    // Usually, the person who clicks "Start" broadcasts the initial state.
     currentPlayerIndex = Math.floor(Math.random() * 2);
 
     currentGame = gameKey;
@@ -402,36 +442,36 @@ function nextItem() {
     
     const item = items[randomIndex];
     
-    const display = document.getElementById('card-content');
-    display.style.opacity = 0;
+    const card = document.getElementById('card-display');
+    const isFlipped = card.classList.contains('is-flipped');
+    const nextFace = isFlipped ? document.getElementById('card-content') : document.getElementById('card-content-back');
     
-    setTimeout(() => {
-        let content = '';
-        const player = players[currentPlayerIndex];
-        const partner = players[1 - currentPlayerIndex];
+    let content = '';
+    const player = players[currentPlayerIndex];
+    const partner = players[1 - currentPlayerIndex];
 
-        if (typeof item === 'object') {
-            let text = item.text.replace(/me/g, partner).replace(/I/g, partner);
-            content = `<span style="color: var(--primary-red); font-weight: bold;">${item.type}:</span><br>${text}`;
-        } else {
-            let text = item.replace(/{player}/g, player).replace(/{partner}/g, partner);
-            content = text;
-        }
-        
-        display.innerHTML = content;
-        display.style.opacity = 1;
-        
-        // Update indicator
-        updateTurnIndicator();
+    if (typeof item === 'object') {
+        let text = item.text.replace(/me/g, partner).replace(/I/g, partner);
+        content = `<span style="color: var(--primary-red); font-weight: bold;">${item.type}:</span><br>${text}`;
+    } else {
+        let text = item.replace(/{player}/g, player).replace(/{partner}/g, partner);
+        content = text;
+    }
+    
+    nextFace.innerHTML = content;
+    card.classList.toggle('is-flipped');
+    triggerEffects();
+    
+    // Update indicator
+    updateTurnIndicator();
 
-        // Broadcast if in multiplayer
-        if (isMultiplayer) {
-            broadcastState(content);
-        }
+    // Broadcast if in multiplayer
+    if (isMultiplayer) {
+        broadcastState(content);
+    }
 
-        // Prepare next turn index
-        currentPlayerIndex = 1 - currentPlayerIndex;
-    }, 200);
+    // Prepare next turn index
+    currentPlayerIndex = 1 - currentPlayerIndex;
 }
 
 // Event Listeners for new UI
