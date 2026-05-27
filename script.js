@@ -39,6 +39,10 @@ function toggleMultiplayer(enabled) {
     document.getElementById('offline-options').style.display = enabled ? 'none' : 'block';
     document.getElementById('online-options').style.display = enabled ? 'block' : 'none';
     
+    // Toggle name setup UI
+    document.getElementById('local-name-setup').style.display = enabled ? 'none' : 'flex';
+    document.getElementById('online-name-setup').style.display = enabled ? 'block' : 'none';
+    
     if (enabled && !supabaseClient) {
         initSupabase();
     }
@@ -47,10 +51,13 @@ function toggleMultiplayer(enabled) {
 async function createRoom() {
     if (!supabaseClient) return alert('Please configure Supabase URL and Key first!');
     
+    const myName = document.getElementById('my-name').value.trim();
+    if (!myName) return alert('Please enter your name first');
+    
     const code = Math.random().toString(36).substring(2, 6).toUpperCase();
     currentRoomCode = code;
     
-    joinChannel(code);
+    joinChannel(code, myName);
     
     document.getElementById('display-room-code').innerText = code;
     document.getElementById('room-info').style.display = 'block';
@@ -61,11 +68,14 @@ async function createRoom() {
 function joinRoom() {
     if (!supabaseClient) return alert('Please configure Supabase URL and Key first!');
     
+    const myName = document.getElementById('my-name').value.trim();
+    if (!myName) return alert('Please enter your name first');
+    
     const code = document.getElementById('room-code-input').value.trim().toUpperCase();
     if (code.length !== 4) return alert('Enter a 4-digit code');
     
     currentRoomCode = code;
-    joinChannel(code);
+    joinChannel(code, myName);
     
     document.getElementById('display-room-code').innerText = code;
     document.getElementById('room-info').style.display = 'block';
@@ -73,11 +83,11 @@ function joinRoom() {
     document.getElementById('join-room-box').style.display = 'none';
 }
 
-function joinChannel(code) {
+function joinChannel(code, myName) {
     if (roomChannel) supabaseClient.removeChannel(roomChannel);
     
     roomChannel = supabaseClient.channel(`room-${code}`, {
-        config: { broadcast: { self: true } }
+        config: { broadcast: { self: false } }
     });
 
     roomChannel
@@ -86,12 +96,24 @@ function joinChannel(code) {
         })
         .on('presence', { event: 'sync' }, () => {
             const state = roomChannel.presenceState();
-            const count = Object.keys(state).length;
-            document.getElementById('connection-status').innerText = count > 1 ? 'Partner Connected!' : 'Waiting for partner...';
+            const presences = Object.values(state).flat();
+            
+            // Sync players array from presence
+            if (presences.length >= 2) {
+                // Sort by join time to keep player order consistent
+                const sorted = presences.sort((a, b) => new Date(a.joined_at) - new Date(b.joined_at));
+                players = sorted.slice(0, 2).map(p => p.name);
+                document.getElementById('connection-status').innerText = `Connected with ${players.find(n => n !== myName)}!`;
+            } else {
+                document.getElementById('connection-status').innerText = 'Waiting for partner...';
+            }
         })
         .subscribe(async (status) => {
             if (status === 'SUBSCRIBED') {
-                await roomChannel.track({ user: 'player', joined_at: new Date().toISOString() });
+                await roomChannel.track({ 
+                    name: myName, 
+                    joined_at: new Date().toISOString() 
+                });
             }
         });
 }
@@ -169,10 +191,13 @@ function setMode(mode, broadcast = true) {
 }
 
 function startGame(gameKey) {
-    // Get names from inputs
-    const p1 = document.getElementById('p1-name').value.trim() || 'Player 1';
-    const p2 = document.getElementById('p2-name').value.trim() || 'Player 2';
-    players = [p1, p2];
+    // Only get names from inputs if NOT in multiplayer
+    // In multiplayer, names are synced via Presence
+    if (!isMultiplayer) {
+        const p1 = document.getElementById('p1-name').value.trim() || 'Player 1';
+        const p2 = document.getElementById('p2-name').value.trim() || 'Player 2';
+        players = [p1, p2];
+    }
     
     currentPlayerIndex = Math.floor(Math.random() * 2);
 
@@ -188,6 +213,9 @@ function startGame(gameKey) {
 function nextItem() {
     if (!currentGame) return;
     
+    // Prepare next turn index before generating content
+    currentPlayerIndex = 1 - currentPlayerIndex;
+
     const historyKey = `${currentGame}-${currentMode}`;
     if (!gameHistory[historyKey]) {
         gameHistory[historyKey] = [];
@@ -213,17 +241,17 @@ function nextItem() {
     const isFlipped = card.classList.contains('is-flipped');
     const nextFace = isFlipped ? document.getElementById('card-content') : document.getElementById('card-content-back');
     let content = '';
-    const player = `<strong>${players[currentPlayerIndex]}</strong>`;
-    const partner = `<strong>${players[1 - currentPlayerIndex]}</strong>`;
+    const player = players[currentPlayerIndex];
+    const partner = players[1 - currentPlayerIndex];
+
+    // Standard placeholder replacement for both objects and strings
+    let text = (typeof item === 'object') ? item.text : item;
+    text = text.replace(/{player}/g, player).replace(/{partner}/g, partner);
 
     if (typeof item === 'object') {
-        // Personalize Truth or Dare: "(Name) Truth/Dare: Question"
-        let text = item.text.replace(/me/g, partner).replace(/I/g, partner);
-        content = `(${player}) <span style="color: var(--primary-red); font-weight: bold;">${item.type}:</span><br>${text}`;
+        content = `<span style="color: var(--primary-red); font-weight: bold;">${item.type}:</span><br>${text}`;
     } else {
-        // Personalize others: "(Name) Question"
-        let text = item.replace(/{player}/g, player).replace(/{partner}/g, partner);
-        content = `(${player}) ${text}`;
+        content = text;
     }
     
     nextFace.innerHTML = content;
@@ -237,9 +265,6 @@ function nextItem() {
     if (isMultiplayer) {
         broadcastState(content);
     }
-
-    // Prepare next turn index
-    currentPlayerIndex = 1 - currentPlayerIndex;
 }
 
 // Event Listeners for new UI
@@ -250,7 +275,7 @@ document.getElementById('next-btn').addEventListener('click', nextItem);
 function updateTurnIndicator() {
     const indicator = document.getElementById('turn-indicator');
     if (indicator) {
-        indicator.innerText = `${players[currentPlayerIndex]}'s Turn`;
+        indicator.innerText = `${players[currentPlayerIndex]}'s turn to answer`;
     }
 }
 

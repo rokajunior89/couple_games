@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Couple Games - Spark Your Connection</title>
+    <title>Roka Couple Games - Spark Your Connection</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>Couple Games</h1>
+            <h1>Roka Couple Games</h1>
             <p class="tagline">Spark Your Connection</p>
             <div class="mode-selector">
                 <button id="normal-mode-btn" class="mode-btn active" onclick="setMode('normal')">Normal</button>
@@ -24,10 +24,14 @@
             <!-- Menu View -->
             <section id="menu-view" class="view active">
                 <div class="player-setup">
-                    <div class="input-group">
+                    <div id="local-name-setup" class="input-group">
                         <input type="text" id="p1-name" placeholder="Name 1" value="Player 1">
                         <span>&</span>
                         <input type="text" id="p2-name" placeholder="Name 2" value="Player 2">
+                    </div>
+                    
+                    <div id="online-name-setup" class="input-group" style="display: none;">
+                        <input type="text" id="my-name" placeholder="Your Name">
                     </div>
                     
                     <div class="multiplayer-options">
